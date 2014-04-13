@@ -21,21 +21,20 @@ $(function(){
     var setUpBoard = function(){
       var spaces = [];
       var space;
-      for (var i = 0; i < 9; i++ ){
-        for (var j = 0; j < 9; j++ ){
+      for (var i = 0; i < 6; i++ ){
+        for (var j = 0; j < 6; j++ ){
           space = $('<div class="space empty"></div>');
           space.addClass((i + j) % 2 ? 'odd' : '');
           space.attr('id', 'id' + j + '-' + i)
 
-          if ([1,7].include(i) && [1,7].include(j)){
-            space.addClass('high-value');
-            space.text('3');
+          if ([1,4].include(i) && [1,4].include(j)){
+            space.addClass('score low-value');
+            space.text('1');
           }
 
-          if ([3,5].include(i) && [3,5].include(j) ||
-              i === 4 && j === 4){
-            space.addClass('low-value');
-            space.text('2');
+          if ([2,3].include(i) && [2,3].include(j)){
+            space.addClass('score low-value');
+            space.text('1');
           }
 
           spaces.push(space);
@@ -46,14 +45,41 @@ $(function(){
 
     var attachEventListeners = function(){
       $('.space').on('click', layStone);
-      $('button').on('click', randomMove);
+      $('#random').on('click', randomMove);
+      $('#toggleColor').on('click', toggleColor);
+      $('body').on('keydown', shiftToToggleColor);
     };
 
-    var randomMove = function () {
+    var shiftToToggleColor = function(event){
+      if (event.keyCode === 16){
+        toggleColor();
+      }
+    };
+
+    var randomMove = function() {
       $spaces = $('.empty');
       space = $spaces[Math.floor(Math.random() * $spaces.length)];
       $(space).trigger('click');
     };
+
+    var toggleColor = function(targetColor) {
+      if (typeof targetColor === "string") {
+        turn = (targetColor === 'white' ? colors.white : colors.black);
+      } else {
+        turn = (turn === colors.black ? colors.white : colors.black);
+      }
+      $('#toggleColor').text("Current color is " + (turn === colors.black ? 'black': 'white'));
+    };
+
+    var togglePlayer = function() {
+      if ($('h2').text() === "First player to move") {
+        $('h2').text("Second player to move");
+        toggleColor('white');
+      } else {
+        $('h2').text("First player to move");
+        toggleColor('black');
+      }
+    }
 
     var layStone = function(event){
       var targetSpace = event.currentTarget;
@@ -62,16 +88,27 @@ $(function(){
         return;
       }
       $(targetSpace).removeClass('empty');
+      $(targetSpace).attr('data-ttl', 4);
       $(targetSpace).addClass(turn === colors.black ? 'black' : 'white');
-      turn = turn === colors.black ? colors.white : colors.black;
+      togglePlayer();
       updateStones($(targetSpace));
     };
+
+    var ageStones = function() {
+      $('[data-ttl]').each(function(i, el){
+        $(el).attr('data-ttl', $(el).attr('data-ttl') - 1);
+        if ($(el).attr('data-ttl') === "0") {
+          $(el).removeAttr('data-ttl');
+          $(el).addClass('rooted');
+        }
+      });
+    }
 
     var updateStones = function($excludedStone){
       var lastStep = false;
       depth += 1;
 
-      $stones = $('.space').not('.empty');
+      $stones = $('.space').not('.empty').not('.rooted');
       if ($excludedStone) {
         $stones = $stones.not('#' + $excludedStone.attr('id'));
       }
@@ -98,7 +135,27 @@ $(function(){
         setTimeout(function(){
           updateStones();
         }, 500);
+      } else {
+        ageStones();
+        updateScore();
       }
+    };
+
+    var updateScore = function () {
+      var blackScore = getScore('black');
+      var whiteScore = getScore('white');
+
+      $('h3.black').text('Black (1st): ' + blackScore);
+      $('h3.white').text('White (2nd): ' + whiteScore);
+    };
+
+    var getScore = function(colorName) {
+      var sum = 0;
+      $('.score.' + colorName).each(function(i, el){
+        sum += parseInt($(el).text());
+      });
+
+      return sum;
     };
 
     var planStone = function(space) {
@@ -129,17 +186,19 @@ $(function(){
 
     var moveStone = function(space) {
       var destination = $('#' + $(space).attr('data-destination'));
-      if (!destination.hasClass('empty')) {
+      if (!destination.hasClass('empty') || destination.hasClass('rooted')) {
         return;
       }
 
       destination.removeClass('empty white black');
       destination.addClass($(space).hasClass('black') ? 'black' : 'white');
+      destination.attr('data-ttl', $(space).attr('data-ttl'));
       $(space).removeClass('white black').addClass('empty');
+      $(space).removeAttr('data-ttl');
     };
 
     var getEnergy = function(color, space, excludedStone) {
-      var $stones = $('.space').not('.empty').not('#' + excludedStone.attr('id'));
+      var $stones = $('.space').not('.empty').not('.rooted').not('#' + excludedStone.attr('id'));
       var energy = 0;
       var polarity = color === colors.black ? -1 : 1;
       var d;
@@ -152,7 +211,7 @@ $(function(){
       })
 
       return energy;
-    }
+    };
 
     var getSurroundingSpaces = function(space) {
       var surroundingSpaces = [];
@@ -161,7 +220,8 @@ $(function(){
       for (var i = -1; i < 2; i++) {
         for (var j = -1; j < 2; j++) {
           $spot = $('#id' + (currentPoint.x + j) + '-' + (currentPoint.y + i));
-          if ($spot.length && (i || j) && $spot.hasClass('empty')) {
+          if ($spot.length && $spot.hasClass('empty') && !$spot.hasClass('rooted') &&
+              (i === 0) !== (j === 0)) {
             surroundingSpaces.push($spot[0]);
           }
         }

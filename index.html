@@ -1,7 +1,7 @@
 <head>
 <style>
 body {
-	background-color: #fff;
+	background-color: #fafafa;
 }
 
 .clearfix:after {
@@ -11,17 +11,19 @@ body {
 }
 
 #board {
+	position: relative;
 	margin: auto;
-	top: 0; left: 0; bottom: 0; right: 0;
-	width: 450px;
-	height: 450px;
+	top: -100px; left: 0; bottom: 0; right: 0;
+	width: 480px;
+	height: 480px;
+	border: 1px solid #ddd;
 	background-color: #9b9b9b;
 }
 
 .space {
 	float: left;
-	width: 50px;
-	height: 50px;
+	width: 80px;
+	height: 80px;
 	background-color: #999;
 
 	font-size: 24px;
@@ -52,6 +54,10 @@ body {
 	background-color: #fff;
 }
 
+.space.rooted {
+	border-radius: 0;
+}
+
 .space.high-value {
 	color: #0f0;
 }
@@ -64,7 +70,11 @@ body {
 </head>
 <body>
 	<h1>This. Is. Monopole.</h1>
-	<button>AI RANDOM MOVE</button>
+	<button id="random">Random AI Move</button>
+	<button id="toggleColor">Current color is black</button>
+	<h2>First player to move</h2>
+	<h3 class="black">Black (1st): 0</h3>
+	<h3 class="white">White (2nd): 0</h3>
 	<div class="clearfix" id="board">
 	</div>
 <script src="jquery-2.1.0.js"></script>
